@@ -12,3 +12,19 @@ So there now two docker images:
 - photos-App: ma-04/ente-web-photos von https://github.com/ma-04/docker_builds/tree/main/ente-io_web-photos
 
 Multiarch build not working, so only amd64. 
+
+# Configuration
+For both Ente Auth and Photos/Album are running on port 80 internally, so when running them, bind any port to port 80.
+Examples,
+
+```docker run --name ente-web-auth -p 3007:80 -e ENDPOINT=https://auth.domain.tld ma04/ente-web-auth```
+```
+  web:
+    image: ma04/ente-web-auth
+    container_name: ente-web-auth
+    ports:
+      - '3007:80'
+    environment:
+      - ENDPOINT=https://auth.domain.tld
+      - TZ="Asia/Dhaka"
+```

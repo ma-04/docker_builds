@@ -53,6 +53,8 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v3
+        with:
+          images: ${{ matrix.ghcr_image }}, ${{ matrix.dockerhub_image }}
 
       - name: Build and push image to GitHub Container Registry
         uses: docker/build-push-action@v2

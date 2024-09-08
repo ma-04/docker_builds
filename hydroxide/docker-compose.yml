@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  hydroxide:
+    container_name: hydroxide
+    hostname: hydroxide
+    image: ma04/hydroxide:latest
+    restart: unless-stopped
+    user: "1000:1000"
+    volumes:
+      - ./hydroxide-data:/hydroxide/
+    ports:
+      - "1025:1025"
+      - "1143:1143"
+      - "8080:8080"
+    command: "serve"

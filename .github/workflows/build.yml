@@ -29,6 +29,9 @@ jobs:
           - dockerfile: ./ente-web/auth.Dockerfile
             ghcr_image: ghcr.io/ma-04/ente-web-photos
             dockerhub_image: ma04/ente-web-photos
+          - dockerfile: ./transfer-zip/Dockerfile
+            ghcr_image: ghcr.io/ma-04/transfer-zip
+            dockerhub_image: ma04/transfer-zip
     permissions:
       contents: read
       packages: write

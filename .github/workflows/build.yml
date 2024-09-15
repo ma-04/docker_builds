@@ -30,8 +30,8 @@ jobs:
             ghcr_image: ghcr.io/ma-04/ente-web-photos
             dockerhub_image: ma04/ente-web-photos
           - dockerfile: ./transfer-zip/Dockerfile
-            ghcr_image: ghcr.io/ma-04/transfer-zip
-            dockerhub_image: ma04/transfer-zip
+            ghcr_image: ghcr.io/ma-04/transfer-zip-web
+            dockerhub_image: ma04/transfer-zip-web
     permissions:
       contents: read
       packages: write

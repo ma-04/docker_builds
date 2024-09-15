@@ -1,12 +1,12 @@
+FROM bitnami/git as transfer-gitloader
+RUN git clone https://github.com/robinkarlberg/transfer.zip-web -b main --depth=1
+
 FROM node:alpine3.19 as build
 
 WORKDIR /app
+COPY --from=transfer-gitloader /transfer.zip-web/web-server .
 
-COPY package.json package-lock.json ./
-COPY src/ src/
-COPY public/ public/
-
-COPY .env .env
+COPY example.env .env
 # COPY . .
 
 # RUN ls -alh && sleep 10

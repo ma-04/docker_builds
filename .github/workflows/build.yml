@@ -32,6 +32,9 @@ jobs:
           - dockerfile: ./transfer-zip/web.Dockerfile
             ghcr_image: ghcr.io/ma-04/transfer-zip-web
             dockerhub_image: ma04/transfer-zip-web
+          - dockerfile: ./transfer-zip/signal.Dockerfile
+            ghcr_image: ghcr.io/ma-04/transfer-zip-signaling-server
+            dockerhub_image: ma04/transfer-zip-signaling-server
     permissions:
       contents: read
       packages: write

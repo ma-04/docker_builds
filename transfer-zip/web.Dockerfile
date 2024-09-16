@@ -1,26 +1,26 @@
-FROM bitnami/git as transfer-gitloader
-RUN git clone https://github.com/robinkarlberg/transfer.zip-web -b main --depth=1
+FROM bitnami/git AS gitloader
+RUN git clone https://github.com/robinkarlberg/transfer.zip-web transfer -b main --depth=1
 
-FROM node:alpine3.19 as build
+FROM node:alpine3.19 AS build
 
 WORKDIR /app
-COPY --from=transfer-gitloader /transfer.zip-web/web-server .
+COPY --from=gitloader /transfer/web-server/ /app
 
-COPY example.env .env
+COPY --from=gitloader /transfer/web-server/example.env .env
 # COPY . .
-
+RUN ls -alh && sleep 10
 # RUN ls -alh && sleep 10
 RUN npm i
 RUN npm run build
 
-FROM nginx:alpine as serve
+FROM nginx:alpine AS serve
 
-COPY nginx.conf /etc/nginx/conf.d/nginx.conf
+COPY --from=build /app/nginx.conf /etc/nginx/conf.d/nginx.conf
 # ADD src/static /var/www/static
 COPY --from=build /app/build /var/www/static
 RUN rm /etc/nginx/conf.d/default.conf
 
-COPY run-server.sh /usr/local/bin
+COPY --from=build /app/run-server.sh /usr/local/bin
 
 EXPOSE 80
 

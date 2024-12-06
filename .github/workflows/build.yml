@@ -35,6 +35,9 @@ jobs:
           - dockerfile: ./transfer-zip/signal.Dockerfile
             ghcr_image: ghcr.io/ma-04/transfer-zip-signaling-server
             dockerhub_image: ma04/transfer-zip-signaling-server
+          - dockerfile: ./base-ubuntu/Dockerfile
+            ghcr_image: ghcr.io/ma-04/ubuntu
+            dockerhub_image: ma04/ubuntu
     permissions:
       contents: read
       packages: write

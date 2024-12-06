@@ -4,3 +4,4 @@ Installed packages:
 - wget
 - iputils-ping
 - net-tools
+- dnsutils

@@ -43,40 +43,60 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - 
+        name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      -
+        name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ma-04
           password: ${{ secrets.GH_PACKAGE_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+      - 
+        name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - 
+        name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v5
         with:
           images: ${{ matrix.ghcr_image }}, ${{ matrix.dockerhub_image }}
-
-      - name: Build and push image to GitHub Container Registry
-        uses: docker/build-push-action@v2
+      
+      - 
+        name: Build and push image to GitHub Container Registry
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ matrix.ghcr_image }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Build and push image to Docker Hub
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ matrix.dockerhub_image }}
+          # tags: |
+          #   ${{ matrix.ghcr_image }}
+          #   ${{ matrix.dockerhub_image }}
+          # platforms: linux/amd64,linux/arm64
+
+      # - 
+      #   name: Build and push image to Docker Hub
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     file: ${{ matrix.dockerfile }}
+      #     push: true
+      #     tags: ${{ matrix.dockerhub_image }}
+      #     platforms: linux/amd64,linux/arm64

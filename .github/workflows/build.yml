@@ -69,12 +69,6 @@ jobs:
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - 
-        name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ matrix.ghcr_image }}, ${{ matrix.dockerhub_image }}
       
       - 
         name: Build and push image to GitHub Container Registry
@@ -82,21 +76,8 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-          # tags: |
-          #   ${{ matrix.ghcr_image }}
-          #   ${{ matrix.dockerhub_image }}
-          # platforms: linux/amd64,linux/arm64
-
-      # - 
-      #   name: Build and push image to Docker Hub
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: .
-      #     file: ${{ matrix.dockerfile }}
-      #     push: true
-      #     tags: ${{ matrix.dockerhub_image }}
-      #     platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ matrix.ghcr_image }}
+            ${{ matrix.dockerhub_image }}
+          platforms: linux/amd64,linux/arm64

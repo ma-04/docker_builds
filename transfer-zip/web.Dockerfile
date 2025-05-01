@@ -4,9 +4,9 @@ RUN git clone https://github.com/robinkarlberg/transfer.zip-web transfer -b main
 FROM node:alpine3.19 AS build
 
 WORKDIR /app
-COPY --from=gitloader /transfer/web-server/ /app
+COPY --from=gitloader /transfer/frontend/ /app
 
-COPY --from=gitloader /transfer/web-server/example.env .env
+COPY --from=gitloader /transfer/frontend/.env.example .env
 # COPY . .
 RUN ls -alh && sleep 10
 # RUN ls -alh && sleep 10

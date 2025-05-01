@@ -6,9 +6,11 @@ FROM node:alpine3.19 AS run
 WORKDIR /app
 COPY --from=gitloader /transfer/signaling-server /app
 
+COPY package.json package-lock.json ./
+
 RUN npm i
 
-COPY --from=gitloader /transfer/signaling-server/index.js ./
+COPY index.js ./
 
 EXPOSE 8001
 

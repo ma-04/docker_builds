@@ -6,7 +6,7 @@ FROM node:22-slim AS ente-builder
 WORKDIR /app
 RUN apt update && apt install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=ente-gitloader /ente/web .
-RUN yarn install
+RUN yarn install --network-timeout 600000
 ENV NEXT_PUBLIC_ENTE_ENDPOINT=DOCKER_RUNTIME_REPLACE_ENDPOINT
 ENV NEXT_PUBLIC_ENTE_ALBUMS_ENDPOINT=DOCKER_RUNTIME_REPLACE_ALBUMS_ENDPOINT
 # Here changed for choosing the app which should be build 

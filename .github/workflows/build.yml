@@ -23,12 +23,6 @@ jobs:
           - dockerfile: ./hydroxide/Dockerfile
             ghcr_image: ghcr.io/ma-04/hydroxide
             dockerhub_image: ma04/hydroxide
-          - dockerfile: ./ente-web/auth.Dockerfile
-            ghcr_image: ghcr.io/ma-04/ente-web-auth
-            dockerhub_image: ma04/ente-web-auth
-          - dockerfile: ./ente-web/auth.Dockerfile
-            ghcr_image: ghcr.io/ma-04/ente-web-photos
-            dockerhub_image: ma04/ente-web-photos
           - dockerfile: ./base-ubuntu/Dockerfile
             ghcr_image: ghcr.io/ma-04/ubuntu
             dockerhub_image: ma04/ubuntu

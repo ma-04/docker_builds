@@ -1,16 +1,17 @@
-version: '3'
-
 services:
   hydroxide:
     container_name: hydroxide
     hostname: hydroxide
+    # Also available as ghcr.io/ma-04/hydroxide:latest
     image: ma04/hydroxide:latest
     restart: unless-stopped
-    user: "1000:1000"
+    # The image runs as UID/GID 1000 by default. If your host user is different
+    # (check with `id -u`), set it here so the data folder stays writable.
+    # user: "1000:1000"
     volumes:
-      - ./hydroxide-data:/hydroxide/
+      - ./hydroxide-data:/hydroxide
     ports:
-      - "1025:1025"
-      - "1143:1143"
-      - "8080:8080"
-    command: "serve"
+      - "1025:1025" # SMTP
+      - "1143:1143" # IMAP
+      - "8080:8080" # CardDAV
+    command: serve

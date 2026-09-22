@@ -1,0 +1,5 @@
+ignored:
+  # Pinning every apk/apt package version is not worth the churn for these images;
+  # the base images are pinned and rebuilt monthly instead.
+  - DL3018
+  - DL3008

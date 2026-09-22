@@ -1,25 +1,35 @@
 name: Build & publish ma04 docker images
 
 on:
-  release:
-    types: [published]
   push:
-    branches: ['main']
+    branches: [main]
+  pull_request:
   workflow_dispatch:
   schedule:
+    # Monthly: rebuild everything on fresh base images and refresh hydroxide :dev from upstream master
     - cron: "1 0 1 * *"
-
-env:
-  REGISTRY: ghcr.io
-  REGISTRY_USERNAME: ${{ github.repository_owner }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-push-image:
-    runs-on: ubuntu-latest
+  lint:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: hadolint
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          recursive: true
+
+  build:
+    name: Build
     permissions:
       contents: read
       packages: write
@@ -28,61 +38,27 @@ jobs:
       matrix:
         include:
           - name: hydroxide
-            dockerfile: ./hydroxide/Dockerfile
+            context: ./hydroxide
           - name: ubuntu
-            dockerfile: ./base-ubuntu/Dockerfile
+            context: ./base-ubuntu
+    uses: ./.github/workflows/docker-image.yml
+    with:
+      name: ${{ matrix.name }}
+      context: ${{ matrix.context }}
+      push: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ env.REGISTRY_USERNAME }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Only runs when a Docker Hub namespace is configured
-      - name: Log in to Docker Hub
-        if: ${{ vars.DOCKERHUB_NAMESPACE != '' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            name=ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
-            name=${{ vars.DOCKERHUB_NAMESPACE }}/${{ matrix.name }},enable=${{ vars.DOCKERHUB_NAMESPACE != '' }}
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=development,enable=${{ github.ref != 'refs/heads/main' }}
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
-            type=sha,format=short
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
+  # hydroxide built from upstream master -> :dev (monthly or on manual dispatch)
+  build-hydroxide-master:
+    name: Build hydroxide (upstream master)
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-image.yml
+    with:
+      name: hydroxide
+      context: ./hydroxide
+      variant: dev
+      build-args: HYDROXIDE_VERSION=master
+    secrets: inherit

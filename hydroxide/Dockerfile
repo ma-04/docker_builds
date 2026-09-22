@@ -1,36 +1,43 @@
-# builder OS
-FROM golang:1-alpine AS builder
+# syntax=docker/dockerfile:1
 
-# update / dependencies
-RUN apk --update upgrade \
-&& apk --no-cache --no-progress add git make gcc musl-dev bash \
-&& rm -rf /var/cache/apk/*
+# Pinned upstream release (bumped automatically by .github/workflows/bump-hydroxide.yml).
+# Any git ref works, e.g. --build-arg HYDROXIDE_VERSION=master for a dev build.
+ARG HYDROXIDE_VERSION=v0.2.32
 
-# docker container settings
-ENV GOPATH /go
+# --- build stage: runs on the build host and cross-compiles for the target arch ---
+FROM --platform=$BUILDPLATFORM golang:1-alpine AS builder
 
-# build hydroxide
-RUN git -C ./src/ clone https://codeberg.org/emersion/hydroxide/
-RUN cd /go/src/hydroxide/cmd/hydroxide && go build . && go install . && cd
+ARG HYDROXIDE_VERSION
+ARG TARGETOS
+ARG TARGETARCH
 
-# container OS
+RUN apk add --no-cache git
+
+WORKDIR /src
+RUN git clone --depth 1 --branch "${HYDROXIDE_VERSION}" https://codeberg.org/emersion/hydroxide.git .
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
+    go build -trimpath -ldflags="-s -w" -o /out/hydroxide ./cmd/hydroxide
+
+# --- runtime stage ---
 FROM alpine:3
 
-ENV XDG_CONFIG_HOME /
-EXPOSE 1025 1143 8080
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -g 1000 -S hydroxide \
+    && adduser -u 1000 -h /hydroxide -S -G hydroxide hydroxide
 
-# update / dependencies
-RUN apk --update upgrade \
-    && apk --no-cache add ca-certificates bash openrc \
-    && rm -rf /var/cache/apk/*
+COPY --from=builder /out/hydroxide /usr/local/bin/hydroxide
 
-RUN addgroup -S hydroxide && adduser -h /hydroxide -S hydroxide -G hydroxide
-RUN chown -R hydroxide:hydroxide /hydroxide
+# hydroxide stores its config in $XDG_CONFIG_HOME/hydroxide -> /hydroxide (mount a volume there)
+ENV XDG_CONFIG_HOME=/
 
-# copy hydroxide
-COPY --chown=hydroxide:hydroxide --from=builder /go/bin/hydroxide /usr/bin/hydroxide
-
-USER hydroxide
+USER 1000:1000
 WORKDIR /hydroxide
 
-ENTRYPOINT ["hydroxide", "-debug", "-smtp-host", "0.0.0.0", "-imap-host", "0.0.0.0", "-carddav-host", "0.0.0.0"]
+# 1025 SMTP, 1143 IMAP, 8080 CardDAV
+EXPOSE 1025 1143 8080
+
+ENTRYPOINT ["hydroxide", "-smtp-host", "0.0.0.0", "-imap-host", "0.0.0.0", "-carddav-host", "0.0.0.0"]
+CMD ["serve"]

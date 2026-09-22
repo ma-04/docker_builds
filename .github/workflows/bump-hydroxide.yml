@@ -1,0 +1,77 @@
+name: Bump hydroxide version
+
+# Weekly: check the latest upstream hydroxide release and open a PR that bumps
+# the pinned ARG HYDROXIDE_VERSION in hydroxide/Dockerfile. Merging the PR
+# publishes the new version via the build workflow.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    name: Check upstream release
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Compare pinned version with upstream
+        id: upstream
+        shell: bash
+        run: |
+          latest=$(curl -fsSL "https://codeberg.org/api/v1/repos/emersion/hydroxide/releases/latest" | jq -r '.tag_name')
+          if [[ ! "$latest" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unexpected upstream tag '$latest'"
+            exit 1
+          fi
+          current=$(grep -m1 -oE '^ARG HYDROXIDE_VERSION=.*' hydroxide/Dockerfile | cut -d= -f2)
+          changed=false
+          [[ "$latest" != "$current" ]] && changed=true
+          {
+            echo "latest=$latest"
+            echo "current=$current"
+            echo "changed=$changed"
+          } >> "$GITHUB_OUTPUT"
+          echo "Pinned: $current, upstream: $latest, changed: $changed"
+
+      - name: Update Dockerfile
+        if: ${{ steps.upstream.outputs.changed == 'true' }}
+        run: |
+          sed -i "s|^ARG HYDROXIDE_VERSION=.*|ARG HYDROXIDE_VERSION=${{ steps.upstream.outputs.latest }}|" hydroxide/Dockerfile
+          git diff --stat
+
+      - name: Set up Docker Buildx
+        if: ${{ steps.upstream.outputs.changed == 'true' }}
+        uses: docker/setup-buildx-action@v4
+
+      - name: Verify the new version builds
+        if: ${{ steps.upstream.outputs.changed == 'true' }}
+        uses: docker/build-push-action@v7
+        with:
+          context: ./hydroxide
+          platforms: linux/amd64
+          push: false
+          cache-from: type=gha,scope=hydroxide-stable
+
+      - name: Open pull request
+        if: ${{ steps.upstream.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: bump/hydroxide
+          delete-branch: true
+          commit-message: "build(hydroxide): bump to ${{ steps.upstream.outputs.latest }}"
+          title: "build(hydroxide): bump to ${{ steps.upstream.outputs.latest }}"
+          body: |
+            Bumps the pinned hydroxide version from `${{ steps.upstream.outputs.current }}` to `${{ steps.upstream.outputs.latest }}`.
+
+            Upstream release: https://codeberg.org/emersion/hydroxide/releases/tag/${{ steps.upstream.outputs.latest }}
+
+            A linux/amd64 test build of the new version passed in this workflow run.
+            Merging publishes `latest`, `${{ steps.upstream.outputs.latest }}` and the major.minor tag.
+          labels: dependencies

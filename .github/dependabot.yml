@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Keep GitHub Actions on current (Node 24) releases
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Base image bumps (golang, alpine, ubuntu)
+  - package-ecosystem: docker
+    directories:
+      - /hydroxide
+      - /base-ubuntu
+    schedule:
+      interval: weekly

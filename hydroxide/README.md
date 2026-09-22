@@ -1,68 +1,72 @@
-[![ci](https://github.com/ma-04/hydroxide-docker/actions/workflows/ci.yml/badge.svg)](https://github.com/ma-04/hydroxide-docker/actions/workflows/ci.yml)
+[![build](https://github.com/ma-04/docker_builds/actions/workflows/build.yml/badge.svg)](https://github.com/ma-04/docker_builds/actions/workflows/build.yml)
 # Hydroxide Dockerfile
 
-This repository provides an example Dockerfile configuration for [hydroxide](https://github.com/emersion/hydroxide).
+A multi-arch (amd64 / arm64) image for [hydroxide](https://codeberg.org/emersion/hydroxide), a third-party, open-source implementation of the ProtonMail Bridge protocol.
 
-Before submitting issues, please see the [hydroxide](https://github.com/emersion/hydroxide) docs and [Protomail](https://protonmail.com/support/) support pages for hydroxide and Protonmail specific matters.
+Before submitting issues, please see the [hydroxide](https://codeberg.org/emersion/hydroxide) docs and [Proton](https://proton.me/support) support pages for hydroxide and Proton Mail specific matters.
 
-I offer no guarentees that this is a secure way to store and pass your hydroxide authentication information to other apps. It is one working example to get you started. If you can improve the security of this example configuration, please send a pull request. 
+I offer no guarantees that this is a secure way to store and pass your hydroxide authentication information to other apps. It is one working example to get you started. If you can improve the security of this example configuration, please send a pull request.
 
-## Setup
+## Images and tags
 
-Below are some basic instructions to get you started.
+| Registry | Image |
+| --- | --- |
+| Docker Hub | `ma04/hydroxide` |
+| GitHub | `ghcr.io/ma-04/hydroxide` |
+
+| Tag | Meaning |
+| --- | --- |
+| `latest`, `0.2.32`, `0.2` | Built from the pinned upstream release in the [Dockerfile](Dockerfile). Bumped by PR when upstream releases. |
+| `dev` | Built from upstream `master` on the first of every month (and on manual runs). |
+| `sha-<short>` | Stable build from a specific commit of this repo. |
+
+The image runs as UID/GID `1000` and stores its config in `/hydroxide`. Mount a volume there and make sure the host folder is writable by that user.
 
 ## Running hydroxide as a Docker container
 
-First, you need to run the container and link it to your other apps. You can do this with `docker run` or `docker-compose`.
+You can do this with `docker run` or `docker compose`.
 
 docker run:
 
 ```
-docker run -it -d --user 1000 -p 1025:1025 -p 1143:1143 -p 8080:8080 -v ./hydroxide-data:/hydroxide --name hydroxide ma04/hydroxide:latest serve
-```
-Ports:
-1025: SMTP server (for sending emails), 1143: IMAP server (for receiving emails), 8080: Carddav HTTP server
-
-WARNING: you may need to create the folder first as a non root user in your system, still working on the fix
-After running the container, you need to login to your Protonmail account with your proton username. You can do this by running:
-
-```
-docker exec -it hydroxide hydroxide auth <proton user name>
+mkdir -p hydroxide-data
+docker run -d --name hydroxide -p 1025:1025 -p 1143:1143 -p 8080:8080 -v ./hydroxide-data:/hydroxide ma04/hydroxide:latest serve
 ```
 
+Ports: `1025` SMTP (sending), `1143` IMAP (receiving), `8080` CardDAV.
 
-### IMPORTANT: You must run the container with the `--user 1000`(your user id) flag. This is because the container runs as 101 by default and if your user id is not 101, hydroxide will run into filesystem permission error.
+If your host user is not UID 1000 (check with `id -u`), add `--user "$(id -u):$(id -g)"` so hydroxide can write to the data folder.
 
-to get your user id, run the following command:
-
-```
-id -u
-```
-todo: fix the default user id to 1000 or better yet, make it configurable. (still an issue ig :( )
-
-# Docker-Compose
-
-If you require a `docker-compose` file, see [docker-compose.yml](docker-compose.yml). If you are unfamiliar with docker-compose, here is some code to get you started.
-
-
-### Navigate to this repo by changing the directory
-```
-cd hydroxide-docker
-```
-Create a folder for the data
-```
-mkdir hydroxide_data
-```
-make appropriate changes to the docker-compose.yml file and then run the following commands
-
-```
-docker-compose up -d
-```
-
-After running the container, you need to login to your Protonmail account with your proton username. You can do this by running:
+After the container is up, log in with your Proton username:
 
 ```
 docker exec -it hydroxide hydroxide auth <proton username>
 ```
 
-or you can use your existing hydroxide by moving it inside the hydroxide-data folder and restarting/starting the container
+## Docker Compose
+
+See [docker-compose.yml](docker-compose.yml). Adjust it as needed, then:
+
+```
+mkdir -p hydroxide-data
+docker compose up -d
+docker exec -it hydroxide hydroxide auth <proton username>
+```
+
+You can also reuse an existing hydroxide config by moving it into the `hydroxide-data` folder and restarting the container.
+
+## Debug logging
+
+Pass `-debug` before the subcommand to get verbose logs. Because the host flags are part of the image entrypoint, override it:
+
+```
+docker run --rm -it --entrypoint hydroxide -v ./hydroxide-data:/hydroxide ma04/hydroxide:latest -debug -smtp-host 0.0.0.0 -imap-host 0.0.0.0 -carddav-host 0.0.0.0 serve
+```
+
+## Building locally
+
+```
+docker build -t hydroxide ./hydroxide
+# or from upstream master:
+docker build --build-arg HYDROXIDE_VERSION=master -t hydroxide:dev ./hydroxide
+```

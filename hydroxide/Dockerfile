@@ -10,7 +10,7 @@ RUN apk --update upgrade \
 ENV GOPATH /go
 
 # build hydroxide
-RUN git -C ./src/ clone https://github.com/emersion/hydroxide/
+RUN git -C ./src/ clone https://codeberg.org/emersion/hydroxide/
 RUN cd /go/src/hydroxide/cmd/hydroxide && go build . && go install . && cd
 
 # container OS
